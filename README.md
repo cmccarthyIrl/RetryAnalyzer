@@ -1,12 +1,17 @@
 # RetryAspect
 
-This `RetryAspect` class is an implementation of the retry mechanism in Java using Aspect-Oriented Programming (AOP). It allows methods annotated with `@Retryable` to be executed multiple times in case of failure, with configurable retry attempts and backoff delay.
+This `RetryAspect` class is an implementation of the retry mechanism in Java using Aspect-Oriented Programming (AOP). It
+allows methods annotated with `@Retryable` to be executed multiple times in case of failure, with configurable retry
+attempts and backoff delay.
 
 ## Features
 
-- **Retry Mechanism**: Automatically retries a method execution if it fails, based on the configuration provided by the `@Retryable` annotation.
-- **Configurable Attempts and Delay**: Allows configuration of the maximum number of retry attempts and the delay between retries.
-- **Exception Handling**: Only retries for specified exceptions, providing fine-grained control over which failures should trigger a retry.
+- **Retry Mechanism**: Automatically retries a method execution if it fails, based on the configuration provided by
+  the `@Retryable` annotation.
+- **Configurable Attempts and Delay**: Allows configuration of the maximum number of retry attempts and the delay
+  between retries.
+- **Exception Handling**: Only retries for specified exceptions, providing fine-grained control over which failures
+  should trigger a retry.
 
 ## Usage
 
@@ -25,7 +30,11 @@ public class MyService {
 }
 ```
 
+In this example, the unreliableMethod will be retried up to 3 times with a delay of 1000 milliseconds between retries,
+but only if an RuntimeException is thrown.
+
 ### 2. Configure the `@Retryable` Annotation
+
 The `@Retryable` annotation allows you to configure the retry behavior for a method. It has the following attributes:
 
 - **maxAttempts**: The maximum number of retry attempts (default is 3).
@@ -33,93 +42,83 @@ The `@Retryable` annotation allows you to configure the retry behavior for a met
 - **include**: The exceptions that should trigger a retry.
 
 ```java
+
 @Retryable(maxAttempts = 5, backoff = @Backoff(delay = 2000), include = {IOException.class})
 public void unreliableMethod() {
 // Method implementation
 }
 ```
-In this example, the unreliableMethod will be retried up to 5 times with a delay of 2000 milliseconds between retries, but only if an IOException is thrown.
 
-## Class Details RetryAspect Class
-The RetryAspect class contains the AOP logic for handling retries.
+In this example, the unreliableMethod will be retried up to 5 times with a delay of 2000 milliseconds between retries,
+but only if an IOException is thrown.
 
-```java
+## Usage
 
-@Aspect
-public class RetryAspect {
+To use the RetryAspect library in your project, include the following dependencies and plugins in your `pom.xml` file:
 
-    @Pointcut("@annotation(retryable) && execution(* *(..))")
-    public void retryableMethods(Retryable retryable) {
-    }
-
-    @Around(value = "retryableMethods(retryable)", argNames = "joinPoint,retryable")
-    public Object retryMethod(ProceedingJoinPoint joinPoint, Retryable retryable) throws Throwable {
-        int maxAttempts = retryable.maxAttempts();
-        long delay = retryable.backoff().delay();
-        int attempts = 0;
-        Throwable lastException = null;
-
-        while (attempts < maxAttempts) {
-            try {
-                return joinPoint.proceed();
-            } catch (Throwable ex) {
-                lastException = ex;
-                if (!isExceptionIncluded(ex, retryable.include())) {
-                    throw ex;
-                }
-                attempts++;
-                if (attempts < maxAttempts) {
-                    Thread.sleep(delay);
-                }
-            }
-        }
-        throw lastException != null ? lastException : new RuntimeException("Retry failed after max attempts");
-    }
-
-    private boolean isExceptionIncluded(Throwable ex, Class<? extends Throwable>[] includedClasses) {
-        for (Class<? extends Throwable> includedClass : includedClasses) {
-            if (includedClass.isInstance(ex)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-```
-
-### Methods
-- **retryableMethods**: Pointcut definition for methods annotated with `@Retryable`.
-- **retryMethod**: Around advice that handles the retry logic.
-- **isExceptionIncluded**: Helper method to check if an exception is included in the list of retryable exceptions.
-
-## Dependencies
-Ensure that you have the necessary dependencies for AspectJ in your project
+1. Add `retryaspect` as a dependency
 
 ```xml
-    <dependencies>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-            <version>1.9.7</version>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <version>1.9.7</version>
-        </dependency>
-    </dependencies>
+
+<dependencies>
+    ...
+    <dependency>
+        <groupId>io.github.cmccarthyirl</groupId>
+        <artifactId>retryaspect</artifactId>
+        <version>1.0.1</version>
+    </dependency>
+    ...
+</dependencies>
+```
+
+2. Configure the AspectJ Maven Plugin
+
+```xml
+
+<build>
     <plugins>
         <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>aspectj-maven-plugin</artifactId>
             <version>1.15.0</version>
+            <configuration>
+                <complianceLevel>16.0</complianceLevel>
+                <source>16.0</source>
+                <target>16.0</target>
+                <showWeaveInfo>true</showWeaveInfo>
+                <verbose>true</verbose>
+                <Xlint>ignore</Xlint>
+                <encoding>UTF-8</encoding>
+                <aspectLibraries>
+                    <aspectLibrary>
+                        <groupId>io.github.cmccarthyirl</groupId>
+                        <artifactId>retryaspect</artifactId>
+                    </aspectLibrary>
+                </aspectLibraries>
+            </configuration>
+            <executions>
+                <execution>
+                    <goals>
+                        <!-- use this goal to weave all your main classes -->
+                        <goal>compile</goal>
+                        <!-- use this goal to weave all your test classes -->
+                        <goal>test-compile</goal>
+                    </goals>
+                </execution>
+            </executions>
         </plugin>
     </plugins>
-
+</build>
 ```
 
 ## Contribute
+
 Contributions are welcome! [Here's](https://github.com/cmccarthyIrl/RetryAnalyzer/blob/master/CONTRIBUTING.md) how you can get started!!
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/cmccarthyIrl/RetryAnalyzer/blob/master/LICENSE) file for details.
+
+
+
+
